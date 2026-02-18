@@ -3,6 +3,7 @@ import 'recipe.dart';
 import 'recipe_detail.dart';
 import 'schedule_state.dart';
 import 'scheduled_recipe.dart';
+import 'shopping_list_screen.dart';
 
 void main() {
   runApp(const RecipeApp());
@@ -16,14 +17,14 @@ class RecipeApp extends StatelessWidget {
     final ThemeData theme = ThemeData();
 
     return MaterialApp(
-      title: 'Recipe Calculator',
+      title: 'Recipe Home ',
       theme: theme.copyWith(
         colorScheme: theme.colorScheme.copyWith(
           primary: Colors.grey,
           secondary: Colors.black,
         ),
       ),
-      home: const MyHomePage(title: 'Recipe Calculator'),
+      home: const MyHomePage(title: 'Recipe Home'),
     );
   }
 }
@@ -44,6 +45,21 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            tooltip: 'Shopping List',
+            onPressed: () {
+              // Navigate to the new screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ShoppingListScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         // 1. Wrap the existing ListView.builder in a Column
