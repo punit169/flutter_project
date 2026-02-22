@@ -30,7 +30,7 @@ class HomeState extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Food Recipe Social',
+          'Food Recipe Hub',
           // 2
           style: Theme.of(context).textTheme.headlineSmall,
         ),
@@ -48,7 +48,7 @@ class HomeState extends State<Home> {
         // 6
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
+            icon: Icon(Icons.fiber_new_sharp),
             label: 'S1',
           ),
           BottomNavigationBarItem(

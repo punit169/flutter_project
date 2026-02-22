@@ -7,7 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:food_recipe_social/main.dart';
+import 'package:food_recipe_hub/main.dart';
 
 
 void main() {
