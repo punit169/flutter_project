@@ -97,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 // If there are items, show them in a horizontal list
                 return SizedBox(
-                  height: 120, // Give the horizontal list a fixed height
+                  height: 120,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
