@@ -1,33 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'screens/explore_screen.dart';
-import 'screens/recipe_screen.dart';
-import 'screens/cart_screen.dart';
-
+import 'providers/auth_provider.dart';
+import 'screens/home_screen.dart';
+import 'screens/auth_screen.dart';
 void main() {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  ConsumerState<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
-
-  int index = 0;
-
-  final pages = [
-    const ExploreScreen(),
-    const RecipesScreen(),
-    const CartScreen(),
-  ];
+class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-
+    final user = ref.watch(authProvider);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: "Food Recipe Hub",
@@ -36,36 +27,7 @@ class _MyAppState extends State<MyApp> {
         primarySwatch: Colors.orange,
       ),
 
-      home: Scaffold(
-        body: pages[index],
-
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: index,
-
-          onTap: (i) {
-            setState(() {
-              index = i;
-            });
-          },
-
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.explore),
-              label: "Explore",
-            ),
-
-            BottomNavigationBarItem(
-              icon: Icon(Icons.restaurant),
-              label: "Recipes",
-            ),
-
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart),
-              label: "Cart",
-            ),
-          ],
-        ),
-      ),
+      home: user == null ? AuthScreen() : HomeScreen(),
     );
   }
 }

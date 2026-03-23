@@ -6,19 +6,64 @@ import '../widgets/explore_widgets.dart';
 import '../widgets/list_widgets.dart';
 import '../providers/bookmark_provider.dart';
 import '../providers/recipe_repository_provider.dart';
+import '../screens/profile_screen.dart';
+import '../providers/user_provider.dart';
+
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
-
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final api = ref.read(recipeApiServiceProvider);
     final likeService = ref.read(likeServiceProvider);
+    final user = ref.read(userProvider);
+    final likedIds = ref.watch(likeProvider);
+    final bookmarkIds = ref.watch(favoritesProvider);
 
+    final combined = [...likedIds, ...bookmarkIds];
+    final userAsync = ref.read(userProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Explore"),
         centerTitle: true,
+        actions: [
+          userAsync.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: CircleAvatar(
+                radius: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+
+            error: (e, _) => const Icon(Icons.error),
+
+            data: (user) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProfileScreen(),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundImage: user?.photoUrl != null
+                        ? NetworkImage(user!.photoUrl!)
+                        : null,
+                    child: user?.photoUrl == null
+                        ? const Icon(Icons.person)
+                        : null,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<List<int>>(
         future: likeService.getTrendingRecipeIds(),
@@ -30,17 +75,35 @@ class ExploreScreen extends ConsumerWidget {
           final trendingIds = trendingIdSnap.data!;
 
           return FutureBuilder<List<Recipe>>(
-            future: trendingIds.isEmpty
-                ? api.getTrendingRecipes()
-                : api.getRecipesByIds(
-              trendingIds.map((e) => e.toString()).toList(),
-            ),
-            builder: (context, trendingSnap) {
-              if (!trendingSnap.hasData) {
-                return const Center(child: CircularProgressIndicator());
+            future:  () async {
+              final likedIds = ref.read(likeProvider);
+              final bookmarkIds = ref.read(favoritesProvider).toList();
+
+              final combined = [...likedIds, ...bookmarkIds];
+
+              // fallback if empty
+              if (combined.isEmpty) {
+                return await api.getTrendingRecipes();
               }
 
-              final trending = trendingSnap.data!;
+              final sample = await api.getRecipesByIds(
+                combined.take(1).map((e) => e.toString()).toList(),
+              );
+
+              final query =
+              sample.isNotEmpty ? sample.first.title : "food";
+
+              final recommended =
+              await api.getRecommendedRecipes(query);
+
+              return recommended;
+            }(),
+            builder: (context, recSnapshot) {
+              if (!recSnapshot.hasData) {
+                return const SizedBox();
+              }
+
+              final recommended = recSnapshot.data!;
 
               return FutureBuilder<List<List<Recipe>>>(
                 future: Future.wait([
@@ -82,9 +145,9 @@ class ExploreScreen extends ConsumerWidget {
 
                             const SizedBox(height: 20),
 
-                            // 🔥 REAL TRENDING
-                            SectionTitle(title: "🔥 Trending"),
-                            TrendingRecipesList(recipes: trending),
+                            const SectionTitle(title: "🔥 Trending" ),
+                            TrendingRecipesList(recipes: recommended),
+
 
                             if (favoritesRecipes.isNotEmpty) ...[
                               const SectionTitle(
@@ -106,6 +169,7 @@ class ExploreScreen extends ConsumerWidget {
 
                             SectionTitle(title: "⚡ Quick Meals"),
                             TrendingRecipesList(recipes: quick),
+
                           ],
                         ),
                       );

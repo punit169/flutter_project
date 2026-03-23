@@ -5,6 +5,10 @@ import '../models/recipe.dart';
 import '../providers/cart_provider.dart';
 import '../providers/meal_plan_provider.dart';
 import '../models/cart.dart';
+import '../providers/comment_provider.dart';
+import '../providers/comment_action_provider.dart';
+import '../providers/user_provider.dart';
+import '../utils/time_utils.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final Recipe recipe;
@@ -72,6 +76,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final comments = ref.watch(commentsProvider(widget.recipe.id));
+    final commentController = TextEditingController();
+    final commentsAsync = ref.watch(commentsProvider(widget.recipe.id));
+
+
+
     return Scaffold(
       appBar: AppBar(title: Text(widget.recipe.title)),
 
@@ -172,7 +182,77 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 onPressed: () {
                   scheduleMeal(context, ref, recipe , servings);
                 },
-              )
+              ),
+              commentsAsync.when(
+
+                loading: () => const CircularProgressIndicator(),
+                error: (e, _) => const Text("Error"),
+                data: (comments) {
+                  return Column(
+                    children: comments.map((c) {
+                      final currentUser = ref.read(userProvider).value;
+                      final user = ref.watch(userProvider).value;
+                      final isLiked = c.likedBy.contains(user?.uid);
+
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundImage: c.photoUrl != null
+                              ? NetworkImage(c.photoUrl!)
+                              : null,
+                          child: c.photoUrl == null
+                              ? const Icon(Icons.person)
+                              : null,
+                        ),
+
+                        title: Text(c.username),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c.text),
+                            Text(
+                              timeAgo(c.createdAt),
+                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // ❤️ Like button
+                            IconButton(
+                              icon: Icon(
+                                isLiked ? Icons.favorite : Icons.favorite_border,
+                                color: Colors.red,
+                              ),
+                              onPressed: () {
+                                ref.read(commentActionsProvider).toggleLikeComment(
+                                  recipe.id,
+                                  c.id,
+                                  user!.uid,
+                                );
+                              },
+                            ),
+                            Text("${c.likes}"),
+
+                            // 🗑 Delete (only own)
+                            if (currentUser?.uid == c.userId)
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () {
+                                  ref
+                                      .read(commentActionsProvider)
+                                      .deleteComment(recipe.id, c.id);
+                                },
+                              ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+
             ],
           );
         },

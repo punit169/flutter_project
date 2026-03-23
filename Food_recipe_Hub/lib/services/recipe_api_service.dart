@@ -85,4 +85,16 @@ class RecipeApiService {
     }
 
   }
+  Future<List<Recipe>> getRecommendedRecipes(String query) async {
+    final url = Uri.parse(
+      "$baseUrl/recipes/complexSearch?query=$query&number=10&apiKey=$apiKey",
+    );
+
+    final res = await http.get(url);
+    final data = jsonDecode(res.body);
+
+    return (data["results"] as List)
+        .map((e) => Recipe.fromJson(e))
+        .toList();
+  }
 }
