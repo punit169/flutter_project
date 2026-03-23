@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/spoonacular_service.dart';
-import '../providers/favorite_provider.dart';
+import '../providers/bookmark_provider.dart';
 import '../providers/recipe_provider.dart';
 import '../models/recipe.dart';
 import 'recipe_detail_screen.dart';

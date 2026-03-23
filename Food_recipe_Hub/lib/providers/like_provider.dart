@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/like_service.dart';
-
+final likeServiceProvider = Provider<LikeService>((ref) {
+  return LikeService();
+});
 final likeProvider =
 StateNotifierProvider<LikeNotifier, List<int>>((ref) {
   return LikeNotifier();
