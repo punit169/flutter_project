@@ -5,7 +5,7 @@ import '../models/cart.dart';
 class MealPlanNotifier extends StateNotifier<List<MealPlan>> {
   MealPlanNotifier() : super([]);
 
-  void scheduleMeal(Recipe recipe, DateTime time) {
+  void scheduleMeal(Recipe recipe, DateTime time , int servings) {
     state = [
       ...state,
       MealPlan(
@@ -15,6 +15,7 @@ class MealPlanNotifier extends StateNotifier<List<MealPlan>> {
           unit: recipe.ingredients.map((i) => i.unit).toString(),
           recipeName: recipe.title,
           ingredient: recipe.ingredients,
+          servings: servings,
       ),
 
     ];

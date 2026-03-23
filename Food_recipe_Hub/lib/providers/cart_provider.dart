@@ -44,4 +44,29 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   void clearCart() {
     state = [];
   }
+  void addMultipleItems(List<CartItem> items) {
+    state = [...state, ...items];
+  }
+  List<CartItem> get mergedItems {
+    final Map<String, CartItem> merged = {};
+
+    for (var item in state) {
+      final key = "${item.name}_${item.unit}".toLowerCase();
+
+      if (merged.containsKey(key)) {
+        final existing = merged[key]!;
+
+        merged[key] = CartItem(
+          name: existing.name,
+          amount: existing.amount + item.amount,
+          unit: existing.unit,
+          recipeName: existing.recipeName,
+        );
+      } else {
+        merged[key] = item;
+      }
+    }
+
+    return merged.values.toList();
+  }
 }

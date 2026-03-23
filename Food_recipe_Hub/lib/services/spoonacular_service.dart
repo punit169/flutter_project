@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/recipe.dart';
+//apis:: 1842e5d5410d410e8280d45ff34ba512 , de126a93d5154180befda9883551b56c , 6684ecb71ed74c509b09ea7a15b1eaeb
 class SpoonacularService {
-  static const apiKey = "91864d74823f435ba78e81536d8276d2";
+  static const apiKey = "6684ecb71ed74c509b09ea7a15b1eaeb";
 
   Future<List<Recipe>> fetchRecipes({
     int offset = 0,

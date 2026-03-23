@@ -24,6 +24,7 @@ class MealPlan {
   final List<Ingredient> ingredient;
   DateTime? scheduledTime;
   bool isChecked;
+  final int servings;
 
   MealPlan({
     required this.name,
@@ -33,5 +34,6 @@ class MealPlan {
     this.scheduledTime,
     required this.ingredient,
     this.isChecked = false,
+    required this.servings,
   });
 }

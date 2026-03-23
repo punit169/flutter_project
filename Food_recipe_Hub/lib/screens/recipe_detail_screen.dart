@@ -4,6 +4,7 @@ import '../services/spoonacular_service.dart';
 import '../models/recipe.dart';
 import '../providers/cart_provider.dart';
 import '../providers/meal_plan_provider.dart';
+import '../models/cart.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final Recipe recipe;
@@ -19,7 +20,7 @@ class RecipeDetailScreen extends ConsumerStatefulWidget {
 class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   late Future<Recipe> recipeFuture;
-
+  int servings = 1;
   @override
   void initState() {
     super.initState();
@@ -27,10 +28,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     recipeFuture =
         SpoonacularService().fetchRecipeDetails(widget.recipe.id);
   }
+
   Future<void> scheduleMeal(
       BuildContext context,
       WidgetRef ref,
-      Recipe recipe,
+      Recipe recipe, int servings,
       ) async {
 
     final date = await showDatePicker(
@@ -60,12 +62,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     ref.read(mealPlanProvider.notifier).scheduleMeal(
       recipe,
       scheduledDateTime,
+      servings
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Meal Scheduled")),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,11 +109,68 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       "${i.name}  ${i.amount} ${i.unit}"),
                 ),
               ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+
+                  IconButton(
+                    icon: const Icon(Icons.remove),
+                    onPressed: () {
+                      if (servings > 1) {
+                        setState(() {
+                          servings--;
+                        });
+                      }
+                    },
+                  ),
+
+                  Text(
+                    "$servings servings",
+                    style: const TextStyle(fontSize: 18),
+                  ),
+
+                  IconButton(
+                    icon: const Icon(Icons.add),
+                    onPressed: () {
+                      setState(() {
+                        servings++;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+              ElevatedButton.icon(
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text("Add to Cart"),
+                onPressed: () {
+
+                  final scaledIngredients = recipe.ingredients.map((i) {
+
+                    final newAmount = i.amount * servings;
+
+                    return CartItem(
+                      name: i.name,
+                      amount: newAmount.toString(),
+                      unit: i.unit,
+                      recipeName: recipe.title,
+                    );
+
+                  }).toList();
+
+                  ref.read(cartProvider.notifier)
+                      .addMultipleItems(scaledIngredients);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Added to Cart")),
+                  );
+
+                },
+              ),
               ElevatedButton.icon(
                 icon: const Icon(Icons.schedule),
                 label: const Text("Schedule Meal"),
                 onPressed: () {
-                  scheduleMeal(context, ref, recipe);
+                  scheduleMeal(context, ref, recipe , servings);
                 },
               )
             ],

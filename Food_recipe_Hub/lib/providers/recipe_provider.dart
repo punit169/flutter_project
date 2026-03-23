@@ -47,6 +47,10 @@ class RecipesNotifier extends StateNotifier<List<Recipe>> {
   }
 
   Future<void> search(String query) async {
+    _offset = 0;
+    state = [];
+    _query = query;
+
     await loadRecipes(query: query);
   }
 }

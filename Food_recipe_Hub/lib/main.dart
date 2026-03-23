@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'screens/explore_screen.dart';
 import 'screens/recipe_screen.dart';
 import 'screens/cart_screen.dart';
 
@@ -20,6 +20,7 @@ class _MyAppState extends State<MyApp> {
   int index = 0;
 
   final pages = [
+    const ExploreScreen(),
     const RecipesScreen(),
     const CartScreen(),
   ];
@@ -48,6 +49,11 @@ class _MyAppState extends State<MyApp> {
           },
 
           items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.explore),
+              label: "Explore",
+            ),
+
             BottomNavigationBarItem(
               icon: Icon(Icons.restaurant),
               label: "Recipes",

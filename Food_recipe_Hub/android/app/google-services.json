@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "373023957458",
+    "project_id": "food-recipe-hub-e3b10",
+    "storage_bucket": "food-recipe-hub-e3b10.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:373023957458:android:69ef557eaf5dd733da280b",
+        "android_client_info": {
+          "package_name": "com.realism.food_recipe_hub"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCNog3p6NvFBJNDIeIWhcOnlBkYtDQOAXM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

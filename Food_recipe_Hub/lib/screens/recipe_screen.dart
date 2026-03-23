@@ -32,11 +32,14 @@ import '../providers/recipe_provider.dart';
 import '../providers/favorite_provider.dart';
 import '../models/recipe.dart';
 import 'recipe_detail_screen.dart';
-import 'favorites_list_screen.dart';
+import 'bookmark_list_screen.dart';
+import '../providers/like_provider.dart';
 
 class RecipesScreen extends ConsumerStatefulWidget {
-  const RecipesScreen({super.key});
+  const RecipesScreen({super.key, this.initialQuery});
+  final String? initialQuery;
 
+  // const RecipesScreen({super.key, this.initialQuery});
   @override
   ConsumerState<RecipesScreen> createState() => _RecipesScreenState();
 }
@@ -45,10 +48,19 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
 
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  List<int> likedIds = [];
 
   @override
   void initState() {
     super.initState();
+
+
+    if (widget.initialQuery != null) {
+      Future.microtask(() {
+        ref.read(recipesProvider.notifier)
+            .search(widget.initialQuery!);
+      });
+    }
 
     _scrollController.addListener(() {
       if (_scrollController.position.pixels >=
@@ -58,11 +70,13 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
     });
   }
 
+
   @override
   Widget build(BuildContext context) {
 
     final recipes = ref.watch(recipesProvider);
     final favorites = ref.watch(favoritesProvider);
+    final likedIds = ref.watch(likeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -90,13 +104,27 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
             padding: const EdgeInsets.all(10),
             child: TextField(
               controller: _searchController,
+
               decoration: InputDecoration(
                 hintText: "Search recipes...",
+
                 prefixIcon: const Icon(Icons.search),
+
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.clear),
+
+                  onPressed: () {
+                    _searchController.clear();
+
+                    ref.read(recipesProvider.notifier).loadRecipes();
+                  },
+                ),
+
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
+
               onSubmitted: (value) {
                 ref.read(recipesProvider.notifier).search(value);
               },
@@ -112,6 +140,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                 final Recipe recipe = recipes[index];
                 final isFav =
                 favorites.contains(recipe.id.toString());
+                bool isLiked = likedIds.contains(recipe.id);
 
                 return ListTile(
                   leading: Image.network(
@@ -123,18 +152,31 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
 
                   title: Text(recipe.title),
 
-                  trailing: IconButton(
-                    icon: Icon(
-                      isFav
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: Colors.red,
-                    ),
-                    onPressed: () {
-                      ref
-                          .read(favoritesProvider.notifier)
-                          .toggle(recipe.id.toString());
-                    },
+                  trailing: Row(
+                    children:[
+                      IconButton(
+                        icon: Icon(
+                          isFav
+                              ? Icons.bookmark
+                              : Icons.bookmark_border,
+                          color: Colors.blue,
+                        ),
+                        onPressed: () {
+                          ref
+                              .read(favoritesProvider.notifier)
+                              .toggle(recipe.id.toString());
+                        },
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          isLiked ? Icons.favorite : Icons.favorite_border,
+                          color: Colors.red,
+                        ),
+                        onPressed: () {
+                          ref.read(likeProvider.notifier).toggleLike(recipe.id);
+                        },
+                      ),
+                    ],
                   ),
 
                   onTap: () {

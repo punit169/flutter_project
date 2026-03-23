@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../models/cart.dart';
 import '../providers/cart_provider.dart';
 import '../providers/meal_plan_provider.dart';
 
@@ -13,104 +12,147 @@ class CartScreen extends ConsumerStatefulWidget {
 
 class _CartScreenState extends ConsumerState<CartScreen> {
 
-  final Map<int, bool> checkedItems = {};
+  final Map<String, bool> checkedItems = {};
 
   @override
   Widget build(BuildContext context) {
 
-    final cartItems = ref.watch(cartProvider);
+    final cartItems = ref.watch(cartProvider.notifier).mergedItems;
     final mealPlans = ref.watch(mealPlanProvider);
+    final sortedMeals = [...mealPlans];
 
-    final scheduledIngredients = <CartItem>[];
 
-    for (var plan in mealPlans) {
-      for (var ingredient in plan.ingredient) {
-        scheduledIngredients.add(
-          CartItem(
-            name: ingredient.name,
-            amount: ingredient.amount.toString(),
-            unit: ingredient.unit,
-            recipeName: plan.recipeName,
-            scheduledTime: plan.scheduledTime,
-          ),
-        );
-      }
-    }
-
-    final allItems = [...cartItems, ...scheduledIngredients];
+    sortedMeals.sort(
+          (a, b) => (a.scheduledTime ?? DateTime.now())
+          .compareTo(b.scheduledTime ?? DateTime.now()),
+    );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Shopping List"),
       ),
 
-      body: allItems.isEmpty
-          ? const Center(child: Text("Cart is empty"))
-          : ListView.builder(
-        itemCount: allItems.length,
-        itemBuilder: (context, index) {
+      body: (cartItems.isEmpty && mealPlans.isEmpty)
+          ? const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
 
-          final item = allItems[index];
-          final isChecked = checkedItems[index] ?? false;
+            Icon(
+            Icons.shopping_cart_outlined,
+            size: 80,
+            color: Colors.grey,
+          ),
 
-          return Card(
-            margin: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 4,
+          SizedBox(height: 20),
+
+          Text(
+            "No items in the cart.",
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            child: CheckboxListTile(
+          ),
+          ],
+        ),
+      ) :ListView(
+        children: [
 
-              value: isChecked,
+          // SCHEDULED RECIPES
+          ...sortedMeals.map((plan) {
 
-              title: Text(
-                item.name,
-                style: TextStyle(
-                  fontSize: 16,
-                  decoration: isChecked
-                      ? TextDecoration.lineThrough
-                      : TextDecoration.none,
-                ),
-              ),
+            final time = TimeOfDay.fromDateTime(plan.scheduledTime ?? DateTime.now());
+            final scheduled = plan.scheduledTime ?? DateTime.now();
+            final date =
+                "${scheduled.day}/${scheduled.month}/${scheduled.year}";
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
 
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                  Text(
-                    "${item.amount} ${item.unit}",
-                    style: const TextStyle(fontSize: 12),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    "${plan.recipeName} - ${plan.servings} Servings"
+                        "($date ${time.format(context)})",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                ),
 
-                  if (item.recipeName != null)
-                    Text(
-                      "Recipe: ${item.recipeName} , Time: ${item.scheduledTime?.toString() ?? "Not Scheduled"}",
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
+                ...plan.ingredient.map((ingredient) {
+
+                  final key = "${plan.recipeName}_${ingredient.name}";
+
+                  return CheckboxListTile(
+                    value: checkedItems[key] ?? false,
+
+                    title: Text(
+                      "${ingredient.name}",
+                      style: TextStyle(
+                        decoration:
+                        (checkedItems[key] ?? false)
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
                       ),
                     ),
+
+                    subtitle: Text("${ingredient.amount*plan.servings} ${ingredient.unit}"),
+
+                    onChanged: (value) {
+                      setState(() {
+                        checkedItems[key] = value ?? false;
+                      });
+                    },
+                  );
+                }),
+              ],
+            );
+          }),
+
+          // MANUAL CART ITEMS GROUPED BY RECIPE
+          if (cartItems.isNotEmpty) ...[
+            ...{for (var item in cartItems) item.recipeName}.map((recipeName) {
+
+              final itemsForRecipe = cartItems.where((item) => item.recipeName == recipeName).toList();
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      recipeName ,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  ...itemsForRecipe.map((item) {
+                    final isChecked = checkedItems[item.name] ?? false;
+                    return CheckboxListTile(
+                      value: isChecked,
+                      title: Text(
+                        "${item.name} ",
+                        style: TextStyle(
+                          decoration: isChecked ? TextDecoration.lineThrough : TextDecoration.none,
+                        ),
+                      ),
+                      subtitle: Text("${item.amount} ${item.unit}"),
+                      onChanged: (value) {
+                        setState(() {
+                          checkedItems[item.name] = value ?? false;
+                        });
+                      },
+                    );
+                  }),
                 ],
-              ),
-
-              onChanged: (value) {
-                setState(() {
-                  checkedItems[index] = value ?? false;
-                });
-              },
-
-              secondary: index < cartItems.length
-                  ? IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  ref
-                      .read(cartProvider.notifier)
-                      .removeItem(index);
-                },
-              )
-                  : null,
-            ),
-          );
-        },
+              );
+            }),
+          ],
+        ],
       ),
 
       floatingActionButton: FloatingActionButton(
