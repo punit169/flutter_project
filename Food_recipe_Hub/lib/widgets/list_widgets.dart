@@ -4,8 +4,9 @@ import '../providers/recipe_provider.dart';
 import '../screens/recipe_screen.dart';
 import '../screens/recipe_detail_screen.dart';
 import '../models/recipe.dart';
+import '../providers/like_provider.dart';
+
 class TrendingRecipesList extends ConsumerWidget {
-  // const TrendingRecipesList({super.key});
   final List<Recipe> recipes;
 
   const TrendingRecipesList({
@@ -15,66 +16,101 @@ class TrendingRecipesList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recipes = ref.watch(recipesProvider);
-    if (recipes.isEmpty) {
+    final list = recipes;
+
+    if (list.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(),
       );
     }
+
     return SizedBox(
       height: 180,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: recipes.length,
+        itemCount: list.length,
         itemBuilder: (context, index) {
-          final recipe = recipes[index];
+          final recipe = list[index];
 
-          return Container(
-            width: 160,
-            margin: const EdgeInsets.only(left: 16),
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    recipe.image,
-                    height: 180,
-                    width: 160,
-                    fit: BoxFit.cover,
-                  ),
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RecipeDetailScreen(recipe: recipe),
                 ),
-
-                // Gradient overlay
-                Container(
-                  decoration: BoxDecoration(
+              );
+            },
+            child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(left: 16),
+              child: Stack(
+                children: [
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.black.withOpacity(0.0),
-                        Colors.black.withOpacity(0.6),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                    child: Image.network(
+                      recipe.image,
+                      height: 180,
+                      width: 160,
+                      fit: BoxFit.cover,
                     ),
                   ),
-                ),
 
-                // Title
-                Positioned(
-                  bottom: 8,
-                  left: 8,
-                  right: 8,
-                  child: Text(
-                    recipe.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.6),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
+
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    right: 8,
+                    child: Text(
+                      recipe.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Consumer(
+                      builder: (context, ref, _) {
+                        final likedIds = ref.watch(likeProvider);
+                        final isLiked = likedIds.contains(recipe.id);
+
+                        return IconButton(
+                          icon: Icon(
+                            isLiked
+                                ? Icons.favorite
+                                : Icons.favorite_border,
+                            color: Colors.red,
+                          ),
+                          onPressed: () {
+                            ref
+                                .read(likeProvider.notifier)
+                                .toggleLike(recipe.id);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -113,6 +149,7 @@ class CategoryList extends StatelessWidget {
               );
             },
             child: Container(
+              width: 160,
               margin: const EdgeInsets.only(left: 16),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
@@ -136,8 +173,12 @@ class RecommendedList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final recipes = ref.watch(recipesProvider);
     if (recipes.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Text(
+          "Nothing here yet 👀",
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
     return ListView.builder(

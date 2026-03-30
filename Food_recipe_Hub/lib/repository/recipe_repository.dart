@@ -7,8 +7,8 @@ class RecipeRepository {
   RecipeRepository(this.api);
 
   //  Trending
-  Future<List<Recipe>> getTrending() async {
-    return await api.getTrendingRecipes();
+  Future<List<int>> getTrending() async {
+    return await api.getTrendingRecipeIds();
   }
 
   //  Healthy

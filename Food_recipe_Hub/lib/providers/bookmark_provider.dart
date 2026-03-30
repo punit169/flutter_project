@@ -1,38 +1,67 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../repository/favorites_repo.dart';
-
-final favoritesRepositoryProvider =
-Provider((ref) => FavoritesRepository());
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final favoritesProvider =
-StateNotifierProvider<FavoritesNotifier, Set<String>>((ref) {
-  final repo = ref.read(favoritesRepositoryProvider);
-  return FavoritesNotifier(repo);
+StateNotifierProvider<FavoritesNotifier, Set<int>>((ref) {
+  return FavoritesNotifier(ref);
 });
 
-class FavoritesNotifier extends StateNotifier<Set<String>> {
-  final FavoritesRepository _repo;
+class FavoritesNotifier extends StateNotifier<Set<int>> {
+  final Ref ref;
 
-  FavoritesNotifier(this._repo) : super({}) {
-    _load();
+  FavoritesNotifier(this.ref) : super({}) {
+    loadFavorites();
   }
 
-  Future<void> _load() async {
-    state = await _repo.loadFavorites();
+  final _db = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+
+  String get userId => _auth.currentUser!.uid;
+
+  // 🔄 LOAD (SAFE FOR OLD USERS)
+  Future<void> loadFavorites() async {
+    try {
+      final doc =
+      await _db.collection("users").doc(userId).get();
+
+      final data = doc.data();
+      if (data == null || !data.containsKey("bookmarks")) {
+        await _db.collection("users").doc(userId).update({
+          "bookmarks": [],
+        });
+
+        state = {};
+        return;
+      }
+      // ✅ SAFE FALLBACK
+      final favs = List<int>.from(data?["bookmarks"] ?? []);
+
+      state = favs.toSet();
+    } catch (e) {
+      print("LOAD BOOKMARK ERROR: $e");
+    }
   }
 
-  void toggle(String recipeId) {
-    final newState = {...state};
+  // ❤️ TOGGLE
+  Future<void> toggleFavorite(int recipeId) async {
+    final newSet = {...state};
 
-    if (newState.contains(recipeId)) {
-      newState.remove(recipeId);
+    if (newSet.contains(recipeId)) {
+      newSet.remove(recipeId);
     } else {
-      newState.add(recipeId);
+      newSet.add(recipeId);
     }
 
-    state = newState;
-    _repo.saveFavorites(state);
-  }
+    state = newSet; // instant UI update
 
-  bool isFavorite(String id) => state.contains(id);
+    try {
+      await _db.collection("users").doc(userId).update({
+        "bookmarks": newSet.toList(),
+      });
+    } catch (e) {
+      print("SAVE BOOKMARK ERROR: $e");
+    }
+  }
 }

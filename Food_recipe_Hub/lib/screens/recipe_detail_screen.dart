@@ -1,6 +1,9 @@
+import 'dart:io';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/spoonacular_service.dart';
+import '../services/Api_service.dart';
 import '../models/recipe.dart';
 import '../providers/cart_provider.dart';
 import '../providers/meal_plan_provider.dart';
@@ -30,7 +33,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     super.initState();
 
     recipeFuture =
-        SpoonacularService().fetchRecipeDetails(widget.recipe.id);
+        ApiService().fetchRecipeDetails(widget.recipe.id);
   }
 
   Future<void> scheduleMeal(
@@ -76,7 +79,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final comments = ref.watch(commentsProvider(widget.recipe.id));
+    // final comments = ref.watch(commentsProvider(widget.recipe.id));
     final commentController = TextEditingController();
     final commentsAsync = ref.watch(commentsProvider(widget.recipe.id));
 
@@ -157,11 +160,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
                   final scaledIngredients = recipe.ingredients.map((i) {
 
-                    final newAmount = i.amount * servings;
+                    final double newAmount = i.amount * servings;
 
                     return CartItem(
                       name: i.name,
-                      amount: newAmount.toString(),
+                      amount: newAmount,
                       unit: i.unit,
                       recipeName: recipe.title,
                     );
@@ -183,69 +186,134 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   scheduleMeal(context, ref, recipe , servings);
                 },
               ),
-              commentsAsync.when(
+              const SizedBox(height: 20),
 
+              const Text(
+                "💬 Comments",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        hintText: "Add a comment...",
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send),
+                    onPressed: () {
+                      ref.read(commentActionsProvider)
+                          .addComment(recipe.id, commentController.text, ref);
+
+                      commentController.clear();
+                    },
+                  ),
+                ],
+              ),
+              commentsAsync.when(
                 loading: () => const CircularProgressIndicator(),
-                error: (e, _) => const Text("Error"),
+                error: (e, _) => const Text("Error loading comments"),
                 data: (comments) {
+                  if (comments.isEmpty) {
+                    return const Text("No comments yet");
+                  }
+
                   return Column(
                     children: comments.map((c) {
-                      final currentUser = ref.read(userProvider).value;
                       final user = ref.watch(userProvider).value;
                       final isLiked = c.likedBy.contains(user?.uid);
 
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundImage: c.photoUrl != null
-                              ? NetworkImage(c.photoUrl!)
-                              : null,
-                          child: c.photoUrl == null
-                              ? const Icon(Icons.person)
-                              : null,
-                        ),
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 6),
+                        child: ListTile(
+                          leading: StreamBuilder(
+                            stream: FirebaseFirestore.instance
+                                .collection("users")
+                                .doc(c.userId)
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              final data = snapshot.data?.data();
+                              final username = data?["username"] ?? "User";
+                              final photoPath = data?["photoPath"];
 
-                        title: Text(c.username),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(c.text),
-                            Text(
-                              timeAgo(c.createdAt),
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                          ],
-                        ),
+                              ImageProvider imageProvider;
 
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // ❤️ Like button
-                            IconButton(
-                              icon: Icon(
-                                isLiked ? Icons.favorite : Icons.favorite_border,
-                                color: Colors.red,
-                              ),
-                              onPressed: () {
-                                ref.read(commentActionsProvider).toggleLikeComment(
-                                  recipe.id,
-                                  c.id,
-                                  user!.uid,
+                              if (photoPath != null &&
+                                  File(photoPath).existsSync()) {
+                                imageProvider = FileImage(File(photoPath));
+                              } else {
+                                imageProvider = NetworkImage(
+                                  "https://ui-avatars.com/api/?name=$username",
                                 );
-                              },
-                            ),
-                            Text("${c.likes}"),
+                              }
 
-                            // 🗑 Delete (only own)
-                            if (currentUser?.uid == c.userId)
+                              return CircleAvatar(
+                                radius: 18,
+                                backgroundImage: imageProvider,
+                              );
+                            },
+                          ),
+                          title:  Text(c.username),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(c.text),
+
+                              const SizedBox(height: 4),
+
+                              Text(
+                                timeAgo(c.createdAt),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // LIKE COMMENT
                               IconButton(
-                                icon: const Icon(Icons.delete),
+                                icon: Icon(
+                                  isLiked
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: Colors.red,
+                                ),
                                 onPressed: () {
                                   ref
                                       .read(commentActionsProvider)
-                                      .deleteComment(recipe.id, c.id);
+                                      .toggleLikeComment(
+                                        recipe.id,
+                                        c.id,
+                                        user!.uid,
+                                      );
                                 },
                               ),
-                          ],
+                              Text("${c.likes}"),
+
+                              // 🗑 DELETE
+                              if (user?.uid == c.userId)
+                                IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () {
+                                    ref
+                                        .read(commentActionsProvider)
+                                        .deleteComment(
+                                          recipe.id,
+                                          c.id,
+                                        );
+                                  },
+                                ),
+                            ],
+                          ),
                         ),
                       );
                     }).toList(),

@@ -83,7 +83,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
         title: const Text("Recipes"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.favorite),
+            icon: const Icon(Icons.bookmark,color: Colors.blueAccent,),
             onPressed: () {
               Navigator.push(
                 context,
@@ -146,6 +146,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                   leading: Image.network(
                     recipe.image,
                     width: 60,
+                    fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) =>
                     const Icon(Icons.image_not_supported),
                   ),
@@ -153,6 +154,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                   title: Text(recipe.title),
 
                   trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children:[
                       IconButton(
                         icon: Icon(
@@ -164,7 +166,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                         onPressed: () {
                           ref
                               .read(favoritesProvider.notifier)
-                              .toggle(recipe.id.toString());
+                              .toggleFavorite(recipe.id);
                         },
                       ),
                       IconButton(

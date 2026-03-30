@@ -1,37 +1,47 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 import '../models/recipe.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RecipeApiService {
 
-  static const apiKey = "1842e5d5410d410e8280d45ff34ba512";
-  static const baseUrl = "https://api.spoonacular.com";
+  String get apiKey => dotenv.env['API_KEY_2'] ?? '';
+  String get baseUrl => dotenv.env['BASE_URL'] ?? '';
 
   Future<Recipe> getRecipeDetail(int id) async {
+    if (apiKey.isEmpty) {
+      throw Exception("API Key missing in .env");
+    }
     final url = Uri.parse(
       "$baseUrl/recipes/$id/information?apiKey=$apiKey",
     );
 
     final response = await http.get(url);
+    if (response.statusCode != 200) {
+      throw Exception("API failed: ${response.statusCode}");
+    }
     final data = jsonDecode(response.body);
 
     return Recipe.fromJson(data);
   }
 
-  Future<List<Recipe>> getTrendingRecipes() async {
-    final url = Uri.parse(
-      "$baseUrl/recipes/random?number=10&apiKey=$apiKey",
-    );
+  Future<List<int>> getTrendingRecipeIds() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection("likes")
+        .orderBy("count", descending: true)
+        .limit(10)
+        .get();
 
-    final response = await http.get(url);
-    final data = jsonDecode(response.body);
-
-    final List recipes = data["recipes"];
-
-    return recipes.map((e) => Recipe.fromJson(e)).toList();
+    return snapshot.docs
+        .map((doc) => int.parse(doc.id))
+        .toList();
   }
 
   Future<List<Recipe>> getHealthyRecipes() async {
+    if (apiKey.isEmpty) {
+      throw Exception("API Key missing in .env");
+    }
     final url = Uri.parse(
       "$baseUrl/recipes/complexSearch?diet=vegetarian&number=10&apiKey=$apiKey",
     );
@@ -69,7 +79,7 @@ class RecipeApiService {
   }
   Future<List<Recipe>> searchRecipes(String query) async {
     final url = Uri.parse(
-      "$baseUrl/recipes/complexSearch?query=$query&number=10&apiKey=$apiKey",
+      "$baseUrl/recipes/complexSearch?query=${Uri.encodeComponent(query)}&number=10&apiKey=$apiKey",
     );
 
     final response = await http.get(url);
@@ -77,7 +87,7 @@ class RecipeApiService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      final List results = data["results"];
+      final List results = data["results"]?? [];
 
       return results.map((e) => Recipe.fromJson(e)).toList();
     } else {
@@ -87,7 +97,7 @@ class RecipeApiService {
   }
   Future<List<Recipe>> getRecommendedRecipes(String query) async {
     final url = Uri.parse(
-      "$baseUrl/recipes/complexSearch?query=$query&number=10&apiKey=$apiKey",
+      "$baseUrl/recipes/complexSearch?query=${Uri.encodeComponent(query)}&number=10&apiKey=$apiKey",
     );
 
     final res = await http.get(url);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:food_recipe_hub/models/recipe.dart';
 import '../providers/like_provider.dart';
@@ -8,6 +9,7 @@ import '../providers/bookmark_provider.dart';
 import '../providers/recipe_repository_provider.dart';
 import '../screens/profile_screen.dart';
 import '../providers/user_provider.dart';
+import '../providers/explore_provider.dart';
 
 class ExploreScreen extends ConsumerWidget {
   const ExploreScreen({super.key});
@@ -15,11 +17,23 @@ class ExploreScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final api = ref.read(recipeApiServiceProvider);
+    final exploreAsync = ref.watch(exploreDataProvider);
+
     final likeService = ref.read(likeServiceProvider);
     final user = ref.read(userProvider);
     final likedIds = ref.watch(likeProvider);
     final bookmarkIds = ref.watch(favoritesProvider);
-
+    ImageProvider imageProvider;
+    ImageProvider getProfileImage(user) {
+      if (user?.photoPath != null &&
+          File(user.photoPath!).existsSync()) {
+        return FileImage(File(user.photoPath!));
+      } else {
+        return NetworkImage(
+          "https://ui-avatars.com/api/?name=${user?.username ?? "User"}&background=ff9800&color=fff",
+        );
+      }
+    }
     final combined = [...likedIds, ...bookmarkIds];
     final userAsync = ref.read(userProvider);
     return Scaffold(
@@ -51,13 +65,9 @@ class ExploreScreen extends ConsumerWidget {
                     );
                   },
                   child: CircleAvatar(
-                    radius: 18,
-                    backgroundImage: user?.photoUrl != null
-                        ? NetworkImage(user!.photoUrl!)
-                        : null,
-                    child: user?.photoUrl == null
-                        ? const Icon(Icons.person)
-                        : null,
+                    radius: 20,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: getProfileImage(user),
                   ),
                 ),
               );
@@ -65,119 +75,65 @@ class ExploreScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: FutureBuilder<List<int>>(
-        future: likeService.getTrendingRecipeIds(),
-        builder: (context, trendingIdSnap) {
-          if (!trendingIdSnap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: exploreAsync.when(
+        loading: () =>
+        const Center(child: CircularProgressIndicator()),
 
-          final trendingIds = trendingIdSnap.data!;
+        error: (e, _) =>
+            Center(child: Text("Error: $e")),
 
-          return FutureBuilder<List<Recipe>>(
-            future:  () async {
-              final likedIds = ref.read(likeProvider);
-              final bookmarkIds = ref.read(favoritesProvider).toList();
+        data: (data) {
+          final trending = data["trending"] as List<Recipe>;
+          final healthy = data["healthy"] as List<Recipe>;
+          final quick = data["quick"] as List<Recipe>;
+          final bookmarks = data["bookmarks"] as List<Recipe>;
+          final recommended = data["recommended"] as List<Recipe>;
 
-              final combined = [...likedIds, ...bookmarkIds];
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const ExploreSearchBar(),
 
-              // fallback if empty
-              if (combined.isEmpty) {
-                return await api.getTrendingRecipes();
-              }
+                const SizedBox(height: 10),
+                const SectionTitle(title: "🥗 Categories"),
+                const CategoryList(),
 
-              final sample = await api.getRecipesByIds(
-                combined.take(1).map((e) => e.toString()).toList(),
-              );
+                const SizedBox(height: 10),
+                if (recommended.isNotEmpty) ...[
+                  const SectionTitle(title: "✨ For You"),
+                  TrendingRecipesList(recipes: recommended),
+                ],
 
-              final query =
-              sample.isNotEmpty ? sample.first.title : "food";
+                const SizedBox(height: 10),
+                const SectionTitle(title: "🔥 Trending"),
+                TrendingRecipesList(recipes: trending),
 
-              final recommended =
-              await api.getRecommendedRecipes(query);
+                const SizedBox(height: 10),
+                if (bookmarks.isNotEmpty) ...[
+                  const SectionTitle(title: "❤️ Based on Bookmarks"),
+                  TrendingRecipesList(recipes: bookmarks),
+                ] else ...[
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      "Add bookmarks to get recommendations",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
 
-              return recommended;
-            }(),
-            builder: (context, recSnapshot) {
-              if (!recSnapshot.hasData) {
-                return const SizedBox();
-              }
+                const SizedBox(height: 10),
+                const SectionTitle(title: "🥗 Healthy"),
+                TrendingRecipesList(recipes: healthy),
 
-              final recommended = recSnapshot.data!;
+                const SizedBox(height: 10),
+                const SectionTitle(title: "⚡ Quick Meals"),
+                TrendingRecipesList(recipes: quick),
 
-              return FutureBuilder<List<List<Recipe>>>(
-                future: Future.wait([
-                  api.getHealthyRecipes(),
-                  api.getQuickRecipes(),
-                ]),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return SizedBox(
-                      height: 180,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: 5,
-                        itemBuilder: (_, __) => const ShimmerCard(),
-                      ),
-                    );
-                  }
-
-                  final healthy = snapshot.data![0];
-                  final quick = snapshot.data![1];
-
-                  final favoriteIds =
-                  ref.watch(favoritesProvider).toList();
-
-                  return FutureBuilder(
-                    future: api.getRecipesByIds(favoriteIds),
-                    builder: (context, favSnapshot) {
-                      final favoritesRecipes =
-                          favSnapshot.data as List<Recipe>? ?? [];
-
-                      return SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const ExploreSearchBar(),
-
-                            SectionTitle(title: "🥗 Categories"),
-                            const CategoryList(),
-
-                            const SizedBox(height: 20),
-
-                            const SectionTitle(title: "🔥 Trending" ),
-                            TrendingRecipesList(recipes: recommended),
-
-
-                            if (favoritesRecipes.isNotEmpty) ...[
-                              const SectionTitle(
-                                  title: "❤️ Based on Bookmarks"),
-                              TrendingRecipesList(
-                                  recipes: favoritesRecipes),
-                            ] else ...[
-                              const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Text(
-                                  "Add bookmarks to get recommendations",
-                                  style: TextStyle(color: Colors.grey),
-                                ),
-                              ),
-                            ],
-
-                            SectionTitle(title: "🥗 Healthy"),
-                            TrendingRecipesList(recipes: healthy),
-
-                            SectionTitle(title: "⚡ Quick Meals"),
-                            TrendingRecipesList(recipes: quick),
-
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              );
-            },
+                const SizedBox(height: 20),
+              ],
+            ),
           );
         },
       ),

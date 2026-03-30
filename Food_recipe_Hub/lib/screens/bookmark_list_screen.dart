@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/spoonacular_service.dart';
+import '../services/Api_service.dart';
 import '../providers/bookmark_provider.dart';
 import '../providers/recipe_provider.dart';
 import '../models/recipe.dart';
@@ -20,12 +20,12 @@ class FavoritesListScreen extends ConsumerWidget {
         .toList();
 
     Future<List<Recipe>> fetchFavorites() async {
-      final service = SpoonacularService();
+      final service = ApiService();
 
       List<Recipe> recipes = [];
 
       for (var id in favoriteIds) {
-        final recipe = await service.fetchRecipeDetails(int.parse(id));
+        final recipe = await service.fetchRecipeDetails(id);
         recipes.add(recipe);
       }
 

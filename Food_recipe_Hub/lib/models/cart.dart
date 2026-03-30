@@ -1,7 +1,8 @@
+
 import 'recipe.dart';
 class CartItem {
   final String name;
-  final String amount;
+  final double amount;
   final String unit;
   final String recipeName;
   DateTime? scheduledTime;

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../models/comment_model.dart';
 import 'user_provider.dart';
 
@@ -47,22 +48,31 @@ class CommentsNotifier extends StateNotifier<List<Comment>> {
   Future<void> addComment(String text) async {
     final user = await ref.read(userProvider.future);
 
-    if (user == null) return;
+    if (user == null || text.trim().isEmpty) return;
 
-    await _db
-        .collection("comments")
-        .doc(recipeId.toString())
-        .collection("items")
-        .add({
-      "userId": user.uid,
-      "username": user.username,
-      "photoUrl": user.photoUrl, // 👈 NEW
-      "text": text,
-      "likes": 0, // 👈 NEW
-      "createdAt": FieldValue.serverTimestamp(),
-      "likedBy": [],
-      "createdAt": FieldValue.serverTimestamp(),
-    });
+    try {
+      await _db
+          .collection("comments")
+          .doc(recipeId.toString())
+          .set({}, SetOptions(merge: true));
+
+      await _db
+          .collection("comments")
+          .doc(recipeId.toString())
+          .collection("items")
+          .add({
+        "userId": user.uid,
+        "username": user.username,
+        "photoPath": user.photoPath,
+        "text": text.trim(),
+        "likes": 0,
+        "likedBy": [],
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+    } catch (e) {
+      print("ADD COMMENT ERROR: $e");
+    }
   }
 
 

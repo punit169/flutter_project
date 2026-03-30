@@ -4,7 +4,7 @@ class Comment {
   final String id;
   final String userId;
   final String username;
-  final String? photoUrl;
+  final String? photoPath;
   final String text;
   final int likes;
   final List<String> likedBy;
@@ -14,7 +14,7 @@ class Comment {
     required this.id,
     required this.userId,
     required this.username,
-    this.photoUrl,
+    this.photoPath,
     required this.text,
     required this.likes,
     required this.likedBy,
@@ -26,7 +26,7 @@ class Comment {
       id: id,
       userId: json["userId"],
       username: json["username"],
-      photoUrl: json["photoUrl"],
+      photoPath: json["photoPath"],
       text: json["text"],
       likes: json["likes"] ?? 0,
       likedBy: List<String>.from(json["likedBy"] ?? []),

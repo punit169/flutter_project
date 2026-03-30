@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../models/recipe.dart';
-import '../services/spoonacular_service.dart';
+import '../services/Api_service.dart';
 
 final recipesProvider =
 StateNotifierProvider<RecipesNotifier, List<Recipe>>((ref) {
@@ -12,7 +13,7 @@ class RecipesNotifier extends StateNotifier<List<Recipe>> {
     loadRecipes();
   }
 
-  final SpoonacularService _service = SpoonacularService();
+  final ApiService _service = ApiService();
 
   int _offset = 0;
   String _query = '';

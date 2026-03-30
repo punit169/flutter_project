@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../providers/user_provider.dart';
 
 final commentActionsProvider = Provider((ref) {
   return CommentActions();
@@ -7,7 +8,25 @@ final commentActionsProvider = Provider((ref) {
 
 class CommentActions {
   final _db = FirebaseFirestore.instance;
+  Future<void> addComment(int recipeId, String text, WidgetRef ref) async {
+    final user = await ref.read(userProvider.future);
 
+    if (user == null || text.trim().isEmpty) return;
+
+    await _db
+        .collection("comments")
+        .doc(recipeId.toString())
+        .collection("items")
+        .add({
+      "userId": user.uid,
+      "username": user.username,
+      "photoPath": user.photoPath,
+      "text": text,
+      "likes": 0,
+      "likedBy": [],
+      "createdAt": FieldValue.serverTimestamp(),
+    });
+  }
   // ❤️ Like comment
   Future<void> toggleLikeComment(
       int recipeId, String commentId, String userId) async {
