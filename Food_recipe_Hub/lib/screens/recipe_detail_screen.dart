@@ -230,90 +230,86 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 6),
-                        child: ListTile(
-                          leading: StreamBuilder(
-                            stream: FirebaseFirestore.instance
-                                .collection("users")
-                                .doc(c.userId)
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              final data = snapshot.data?.data();
-                              final username = data?["username"] ?? "User";
-                              final photoPath = data?["photoPath"];
+                        child: StreamBuilder(
+                          stream: FirebaseFirestore.instance
+                              .collection("users")
+                              .doc(c.userId)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            final data = snapshot.data?.data();
+                            final username = data?["username"] ?? "User";
+                            final photoPath = data?["photoPath"];
 
-                              ImageProvider imageProvider;
+                            ImageProvider imageProvider;
 
-                              if (photoPath != null &&
-                                  File(photoPath).existsSync()) {
-                                imageProvider = FileImage(File(photoPath));
-                              } else {
-                                imageProvider = NetworkImage(
-                                  "https://ui-avatars.com/api/?name=$username",
-                                );
-                              }
+                            if (photoPath != null && File(photoPath).existsSync()) {
+                              imageProvider = FileImage(File(photoPath));
+                            } else {
+                              imageProvider = NetworkImage(
+                                "https://ui-avatars.com/api/?name=$username",
+                              );
+                            }
 
-                              return CircleAvatar(
+                            return ListTile(
+                              leading: CircleAvatar(
                                 radius: 18,
                                 backgroundImage: imageProvider,
-                              );
-                            },
-                          ),
-                          title:  Text(c.username),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(c.text),
-
-                              const SizedBox(height: 4),
-
-                              Text(
-                                timeAgo(c.createdAt),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
                               ),
-                            ],
-                          ),
 
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // LIKE COMMENT
-                              IconButton(
-                                icon: Icon(
-                                  isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () {
-                                  ref
-                                      .read(commentActionsProvider)
-                                      .toggleLikeComment(
+                              title: Text(
+                                username,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(c.text),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    timeAgo(c.createdAt),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: Icon(
+                                      isLiked
+                                          ? Icons.favorite
+                                          : Icons.favorite_border,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () {
+                                      ref.read(commentActionsProvider).toggleLikeComment(
                                         recipe.id,
                                         c.id,
                                         user!.uid,
                                       );
-                                },
-                              ),
-                              Text("${c.likes}"),
+                                    },
+                                  ),
+                                  Text("${c.likes}"),
 
-                              // 🗑 DELETE
-                              if (user?.uid == c.userId)
-                                IconButton(
-                                  icon: const Icon(Icons.delete),
-                                  onPressed: () {
-                                    ref
-                                        .read(commentActionsProvider)
-                                        .deleteComment(
+                                  if (user?.uid == c.userId)
+                                    IconButton(
+                                      icon: const Icon(Icons.delete),
+                                      onPressed: () {
+                                        ref.read(commentActionsProvider).deleteComment(
                                           recipe.id,
                                           c.id,
                                         );
-                                  },
-                                ),
-                            ],
-                          ),
+                                      },
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       );
                     }).toList(),

@@ -1,30 +1,3 @@
-// class _RecipesScreenState extends ConsumerState<RecipesScreen> {
-//   final List<Recipe> _recipes = [];
-//   int offset = 0;
-//   bool loading = false;
-//
-//   @override
-//   void initState() {
-//     super.initState();
-//     loadRecipes();
-//   }
-//
-//   Future<void> loadRecipes() async {
-//     if (loading) return;
-//
-//     loading = true;
-//
-//     final newRecipes =
-//     await SpoonacularService().fetchRecipes(offset: offset);
-//
-//     setState(() {
-//       offset += 20;
-//       _recipes.addAll(newRecipes);
-//     });
-//
-//     loading = false;
-//   }
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -139,7 +112,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
 
                 final Recipe recipe = recipes[index];
                 final isFav =
-                favorites.contains(recipe.id.toString());
+                favorites.contains(recipe.id);
                 bool isLiked = likedIds.contains(recipe.id);
 
                 return ListTile(

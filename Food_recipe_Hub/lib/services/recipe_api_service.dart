@@ -6,7 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RecipeApiService {
 
-  String get apiKey => dotenv.env['API_KEY_2'] ?? '';
+  String get apiKey => dotenv.env['API_KEY_TWO'] ?? '';
   String get baseUrl => dotenv.env['BASE_URL'] ?? '';
 
   Future<Recipe> getRecipeDetail(int id) async {

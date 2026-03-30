@@ -16,7 +16,7 @@ class FavoritesListScreen extends ConsumerWidget {
     final recipes = ref.watch(recipesProvider);
 
     final favoriteRecipes = recipes
-        .where((r) => favoriteIds.contains(r.id.toString()))
+        .where((r) => favoriteIds.contains(r.id))
         .toList();
 
     Future<List<Recipe>> fetchFavorites() async {

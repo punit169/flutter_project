@@ -5,6 +5,7 @@ import 'bookmark_provider.dart';
 import 'recipe_repository_provider.dart';
 
 final exploreDataProvider = FutureProvider((ref) async {
+  ref.keepAlive();
   final api = ref.read(recipeApiServiceProvider);
   final likeService = ref.read(likeServiceProvider);
 
@@ -21,14 +22,14 @@ final exploreDataProvider = FutureProvider((ref) async {
     final quick = await api.getQuickRecipes();
 
     final bookmarkIds =
-    ref.watch(favoritesProvider).map((e) => e.toString()).toList();
+    ref.read(favoritesProvider).map((e) => e.toString()).toList();
 
     final bookmarks = bookmarkIds.isEmpty
         ? <Recipe>[]
         : await api.getRecipesByIds(bookmarkIds);
 
     final likedIds =
-    ref.watch(likeProvider).map((e) => e.toString()).toList();
+    ref.read(likeProvider).map((e) => e.toString()).toList();
 
     final combined = [...likedIds, ...bookmarkIds];
 
@@ -36,11 +37,14 @@ final exploreDataProvider = FutureProvider((ref) async {
 
     if (combined.isNotEmpty) {
       final sample = await api.getRecipesByIds(
-        combined.take(1).map((e) => e.toString()).toList(),
+        combined.take(3).map((e) => e.toString()).toList(),
       );
+      final words = <String>{};
 
-      final query =
-      sample.isNotEmpty ? sample.first.title : "food";
+      for (var r in sample) {
+        words.addAll(r.title.toLowerCase().split(" ").take(2));
+      }
+      final query = words.take(3).join(" ");
 
       recommended = await api.getRecommendedRecipes(query);
     }

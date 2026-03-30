@@ -122,42 +122,79 @@ class CategoryList extends StatelessWidget {
   const CategoryList({super.key});
 
   final List<Map<String, String>> categories = const [
-    {"name": "Quick", "query": "quick"},
-    {"name": "Healthy", "query": "healthy"},
-    {"name": "Veg", "query": "vegetarian"},
-    {"name": "Dessert", "query": "dessert"},
-    {"name": "Breakfast", "query": "breakfast"},
+    {"name": "Breakfast", "query": "breakfast", "icon": "🍳"},
+    {"name": "Veg", "query": "vegetarian", "icon": "🥦"},
+    {"name": "Indian", "query": "indian", "icon": "🍛"},
+    {"name": "Dessert", "query": "dessert", "icon": "🍰"},
+    {"name": "Healthy", "query": "healthy", "icon": "🥗"},
+    {"name": "Quick", "query": "quick", "icon": "⚡"},
+    {"name": "Street Food", "query": "street food", "icon": "🌮"},
+    {"name": "High Protein", "query": "high protein vegetarian", "icon": "💪"},
   ];
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 50,
+      height: 70,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RecipesScreen(
-                    initialQuery: categories[index]["query"]!,
+          final category = categories[index];
+
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RecipesScreen(
+                      initialQuery: category["query"]!,
+                    ),
+                  ),
+                );
+              },
+              child: Ink(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.orange.shade300,
+                      Colors.deepOrange.shade400,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  child: Row(
+                    children: [
+                      Text(
+                        category["icon"]!,
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        category["name"]!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-            child: Container(
-              width: 160,
-              margin: const EdgeInsets.only(left: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Text(categories[index]["name"]!),
               ),
             ),
           );

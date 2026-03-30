@@ -16,15 +16,13 @@ class ExploreScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final api = ref.read(recipeApiServiceProvider);
     final exploreAsync = ref.watch(exploreDataProvider);
-
-    final likeService = ref.read(likeServiceProvider);
-    final user = ref.read(userProvider);
     final likedIds = ref.watch(likeProvider);
     final bookmarkIds = ref.watch(favoritesProvider);
-    ImageProvider imageProvider;
-    ImageProvider getProfileImage(user) {
+
+    // final combined = {...likedIds, ...bookmarkIds};
+
+    ImageProvider getProfileImage(dynamic user) {
       if (user?.photoPath != null &&
           File(user.photoPath!).existsSync()) {
         return FileImage(File(user.photoPath!));
@@ -34,8 +32,7 @@ class ExploreScreen extends ConsumerWidget {
         );
       }
     }
-    final combined = [...likedIds, ...bookmarkIds];
-    final userAsync = ref.read(userProvider);
+    final userAsync = ref.watch(userProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text("Explore"),
@@ -75,6 +72,7 @@ class ExploreScreen extends ConsumerWidget {
           ),
         ],
       ),
+
       body: exploreAsync.when(
         loading: () =>
         const Center(child: CircularProgressIndicator()),
@@ -86,7 +84,9 @@ class ExploreScreen extends ConsumerWidget {
           final trending = data["trending"] as List<Recipe>;
           final healthy = data["healthy"] as List<Recipe>;
           final quick = data["quick"] as List<Recipe>;
-          final bookmarks = data["bookmarks"] as List<Recipe>;
+          final bookmarks = trending
+              .where((r) => bookmarkIds.contains(r.id))
+              .toList();
           final recommended = data["recommended"] as List<Recipe>;
 
           return SingleChildScrollView(
@@ -99,11 +99,11 @@ class ExploreScreen extends ConsumerWidget {
                 const SectionTitle(title: "🥗 Categories"),
                 const CategoryList(),
 
-                const SizedBox(height: 10),
-                if (recommended.isNotEmpty) ...[
-                  const SectionTitle(title: "✨ For You"),
-                  TrendingRecipesList(recipes: recommended),
-                ],
+                // const SizedBox(height: 10),
+                // if (recommended.isNotEmpty) ...[
+                //   const SectionTitle(title: "✨ For You"),
+                //   TrendingRecipesList(recipes: recommended),
+                // ],
 
                 const SizedBox(height: 10),
                 const SectionTitle(title: "🔥 Trending"),
@@ -111,7 +111,7 @@ class ExploreScreen extends ConsumerWidget {
 
                 const SizedBox(height: 10),
                 if (bookmarks.isNotEmpty) ...[
-                  const SectionTitle(title: "❤️ Based on Bookmarks"),
+                  const SectionTitle(title: "✨ For You"),
                   TrendingRecipesList(recipes: bookmarks),
                 ] else ...[
                   const Padding(
