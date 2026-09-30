@@ -78,7 +78,19 @@ class FavoritesListScreen extends ConsumerWidget {
                   ),
                 ),
                 title: Text(recipe.title),
-                trailing: const Icon(Icons.bookmark, color: Colors.blue),
+                trailing: IconButton(
+                  icon: Icon(
+                    ref.watch(favoritesProvider).contains(recipe.id)
+                        ? Icons.bookmark
+                        : Icons.bookmark_border,
+                    color: Colors.blue,
+                  ),
+                  onPressed: () {
+                    ref
+                        .read(favoritesProvider.notifier)
+                        .toggleFavorite(recipe.id);
+                  },
+                ),
                 onTap: () {
                   Navigator.push(
                     context,

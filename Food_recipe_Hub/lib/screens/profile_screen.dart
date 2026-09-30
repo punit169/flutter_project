@@ -276,8 +276,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         "Logout",
                         style: TextStyle(color: Colors.white),
                       ),
-                      onPressed: () =>
-                          ref.read(authProvider.notifier).logout(),
+                      onPressed: () async {
+                        await ref.read(authProvider.notifier).logout();
+                        if (context.mounted) {
+                          Navigator.of(context)
+                              .popUntil((route) => route.isFirst);
+                        }
+                      },
                     ),
                   ),
                 ),

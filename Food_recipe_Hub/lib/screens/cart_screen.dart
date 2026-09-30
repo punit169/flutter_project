@@ -55,7 +55,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ),
           ],
         ),
-      ) :ListView(
+      ) : ListView(
+        padding: const EdgeInsets.only(bottom: 96),
         children: [
 
           // SCHEDULED RECIPES
