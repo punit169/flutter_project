@@ -13,6 +13,39 @@ class Recipe {
     required this.instructions,
   });
 
+  /// Returns instructions with raw HTML tags stripped for clean display.
+  String get cleanInstructions {
+    if (instructions.trim().isEmpty) {
+      return "No instructions available.";
+    }
+    final normalized = instructions
+        .replaceAll('<li>', '\n• ')
+        .replaceAll('<LI>', '\n• ')
+        .replaceAll('</li>', '\n')
+        .replaceAll('</LI>', '\n')
+        .replaceAll('</p>', '\n\n')
+        .replaceAll('</P>', '\n\n')
+        .replaceAll('<br>', '\n')
+        .replaceAll('<br/>', '\n')
+        .replaceAll('<br />', '\n');
+
+    final buffer = StringBuffer();
+    bool inTag = false;
+    for (int i = 0; i < normalized.length; i++) {
+      final ch = normalized[i];
+      if (ch == '<') {
+        inTag = true;
+      } else if (ch == '>') {
+        inTag = false;
+      } else if (!inTag) {
+        buffer.write(ch);
+      }
+    }
+
+    final result = buffer.toString().trim();
+    return result.isEmpty ? "No instructions available." : result;
+  }
+
   factory Recipe.fromJson(Map<String, dynamic> json) {
     List<Ingredient> ingredientsList = [];
 
@@ -45,4 +78,4 @@ class Ingredient {
     required this.amount,
     required this.unit,
   });
-}
+}

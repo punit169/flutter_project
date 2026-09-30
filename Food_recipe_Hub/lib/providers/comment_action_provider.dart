@@ -8,28 +8,36 @@ final commentActionsProvider = Provider((ref) {
 
 class CommentActions {
   final _db = FirebaseFirestore.instance;
+
   Future<void> addComment(int recipeId, String text, WidgetRef ref) async {
     final user = await ref.read(userProvider.future);
 
     if (user == null || text.trim().isEmpty) return;
 
-    await _db
+    final parentDoc = _db
         .collection("comments")
-        .doc(recipeId.toString())
-        .collection("items")
-        .add({
+        .doc(recipeId.toString());
+
+    await parentDoc.set({}, SetOptions(merge: true));
+
+    // Now safely write to subcollection
+    await parentDoc.collection("items").add({
       "userId": user.uid,
       "username": user.username,
       "photoPath": user.photoPath,
-      "text": text,
+      "text": text.trim(),
       "likes": 0,
       "likedBy": [],
       "createdAt": FieldValue.serverTimestamp(),
     });
   }
-  // ❤️ Like comment
+
+
   Future<void> toggleLikeComment(
-      int recipeId, String commentId, String userId) async {
+      int recipeId,
+      String commentId,
+      String userId,
+      ) async {
     final doc = _db
         .collection("comments")
         .doc(recipeId.toString())
@@ -42,17 +50,15 @@ class CommentActions {
     List likedBy = data?["likedBy"] ?? [];
 
     if (likedBy.contains(userId)) {
-      // 👎 UNLIKE
+      // User already liked → unlike
       likedBy.remove(userId);
-
       await doc.update({
         "likes": FieldValue.increment(-1),
         "likedBy": likedBy,
       });
     } else {
-      // 👍 LIKE
+      // User hasn't liked → like
       likedBy.add(userId);
-
       await doc.update({
         "likes": FieldValue.increment(1),
         "likedBy": likedBy,
@@ -60,7 +66,7 @@ class CommentActions {
     }
   }
 
-  // 🗑 Delete comment
+
   Future<void> deleteComment(int recipeId, String commentId) async {
     await _db
         .collection("comments")

@@ -6,6 +6,7 @@ import 'screens/auth_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,8 @@ void main() async {
       rethrow;
     }
   }
+
+  await NotificationService().initialize();
   runApp(
       const ProviderScope(
           child: MyApp(),

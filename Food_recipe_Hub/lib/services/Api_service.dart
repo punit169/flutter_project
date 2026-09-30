@@ -68,7 +68,7 @@ class ApiService {
       title: data["title"] ?? "",
       image: data["image"] ?? "",
       ingredients: ingredients,
-      instructions: "",
+      instructions: data["instructions"] ?? "No instructions available.",
     );
   }
-}
+}

@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import '../models/comment_model.dart';
-import 'user_provider.dart';
 
 final commentsProvider =
 StreamProvider.family<List<Comment>, int>((ref, recipeId) {
@@ -20,60 +18,3 @@ StreamProvider.family<List<Comment>, int>((ref, recipeId) {
         .toList();
   });
 });
-
-class CommentsNotifier extends StateNotifier<List<Comment>> {
-  final Ref ref;
-  final int recipeId;
-
-  final _db = FirebaseFirestore.instance;
-
-  CommentsNotifier(this.ref, this.recipeId) : super([]) {
-    loadComments();
-  }
-
-  // 📥 Load comments
-  Future<void> loadComments() async {
-    final snapshot = await _db
-        .collection("comments")
-        .doc(recipeId.toString())
-        .collection("items")
-        .orderBy("createdAt", descending: true)
-        .get();
-
-    state = snapshot.docs
-        .map((doc) => Comment.fromJson(doc.data(), doc.id))
-        .toList();
-  }
-
-  Future<void> addComment(String text) async {
-    final user = await ref.read(userProvider.future);
-
-    if (user == null || text.trim().isEmpty) return;
-
-    try {
-      await _db
-          .collection("comments")
-          .doc(recipeId.toString())
-          .set({}, SetOptions(merge: true));
-
-      await _db
-          .collection("comments")
-          .doc(recipeId.toString())
-          .collection("items")
-          .add({
-        "userId": user.uid,
-        "username": user.username,
-        "photoPath": user.photoPath,
-        "text": text.trim(),
-        "likes": 0,
-        "likedBy": [],
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-    } catch (e) {
-      print("ADD COMMENT ERROR: $e");
-    }
-  }
-
-
-}

@@ -208,7 +208,7 @@ class RecommendedList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final recipes = ref.watch(recipesProvider);
+    final recipes = ref.watch(recipesProvider).recipes;
     if (recipes.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(16),

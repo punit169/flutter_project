@@ -34,25 +34,25 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       body: (cartItems.isEmpty && mealPlans.isEmpty)
           ? const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
 
             Icon(
-            Icons.shopping_cart_outlined,
-            size: 80,
-            color: Colors.grey,
-          ),
-
-          SizedBox(height: 20),
-
-          Text(
-            "No items in the cart.",
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+              Icons.shopping_cart_outlined,
+              size: 80,
+              color: Colors.grey,
             ),
-          ),
+
+            SizedBox(height: 20),
+
+            Text(
+              "No items in the cart.",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ) :ListView(
@@ -156,15 +156,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
 
-          ref.read(cartProvider.notifier).clearCart();
-          ref.read(mealPlanProvider.notifier).clearMeals();
-
+        onPressed: () async {
+          await ref.read(cartProvider.notifier).clearCart();
+          await ref.read(mealPlanProvider.notifier).clearMeals();
           setState(() {
             checkedItems.clear();
           });
-
         },
         child: const Icon(Icons.delete_sweep),
       ),

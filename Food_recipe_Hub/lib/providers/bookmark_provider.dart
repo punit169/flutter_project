@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:flutter/cupertino.dart';
 
 final favoritesProvider =
 StateNotifierProvider<FavoritesNotifier, Set<int>>((ref) {
@@ -40,7 +41,7 @@ class FavoritesNotifier extends StateNotifier<Set<int>> {
 
       state = favs.toSet();
     } catch (e) {
-      print("LOAD BOOKMARK ERROR: $e");
+      debugPrint("LOAD BOOKMARK ERROR: $e");
     }
   }
 
@@ -61,7 +62,7 @@ class FavoritesNotifier extends StateNotifier<Set<int>> {
         "bookmarks": newSet.toList(),
       });
     } catch (e) {
-      print("SAVE BOOKMARK ERROR: $e");
+      debugPrint("SAVE BOOKMARK ERROR: $e");
     }
   }
 }

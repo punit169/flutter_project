@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../providers/recipe_provider.dart';
 import '../providers/bookmark_provider.dart';
 import '../models/recipe.dart';
@@ -12,42 +11,65 @@ class RecipesScreen extends ConsumerStatefulWidget {
   const RecipesScreen({super.key, this.initialQuery});
   final String? initialQuery;
 
-  // const RecipesScreen({super.key, this.initialQuery});
   @override
   ConsumerState<RecipesScreen> createState() => _RecipesScreenState();
 }
 
 class _RecipesScreenState extends ConsumerState<RecipesScreen> {
-
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
-  List<int> likedIds = [];
 
   @override
   void initState() {
     super.initState();
 
-
     if (widget.initialQuery != null) {
       Future.microtask(() {
-        ref.read(recipesProvider.notifier)
-            .search(widget.initialQuery!);
+        ref.read(recipesProvider.notifier).search(widget.initialQuery!);
       });
     }
 
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >=
-          _scrollController.position.maxScrollExtent - 200) {
+      final position = _scrollController.position;
+
+      // ─────────────────────────────────────────────────────
+      // FIX 1: Guard against firing when already loading
+      // Before: listener fired continuously near the bottom,
+      // calling loadMore() dozens of times per second.
+      // The _isLoading flag inside the notifier blocked
+      // duplicate API calls but wasted CPU checking every frame.
+      //
+      // Now: we check isLoading from STATE (visible to UI)
+      // before even calling loadMore() — clean and efficient.
+      // ─────────────────────────────────────────────────────
+      final isLoading = ref.read(recipesProvider).isLoading;
+
+      if (!isLoading &&
+          position.pixels >= position.maxScrollExtent - 200) {
         ref.read(recipesProvider.notifier).loadMore();
       }
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // ─────────────────────────────────────────────────────
+    // FIX 2: Watch RecipeState object (not just List<Recipe>)
+    // This gives us BOTH recipes and isLoading in one watch call.
+    // When isLoading changes, this widget rebuilds automatically
+    // and shows/hides the spinner at the bottom.
+    // ─────────────────────────────────────────────────────
+    final recipeState = ref.watch(recipesProvider);
+    final recipes = recipeState.recipes;
+    final isLoading = recipeState.isLoading;
 
-    final recipes = ref.watch(recipesProvider);
     final favorites = ref.watch(favoritesProvider);
     final likedIds = ref.watch(likeProvider);
 
@@ -56,64 +78,86 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
         title: const Text("Recipes"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark,color: Colors.blueAccent,),
+            icon: const Icon(Icons.bookmark, color: Colors.blueAccent),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const FavoritesListScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const FavoritesListScreen()),
               );
             },
-          )
+          ),
         ],
       ),
 
       body: Column(
         children: [
 
-          // SEARCH BAR
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(10),
             child: TextField(
               controller: _searchController,
-
               decoration: InputDecoration(
                 hintText: "Search recipes...",
-
                 prefixIcon: const Icon(Icons.search),
-
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.clear),
-
                   onPressed: () {
                     _searchController.clear();
-
                     ref.read(recipesProvider.notifier).loadRecipes();
                   },
                 ),
-
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-
               onSubmitted: (value) {
                 ref.read(recipesProvider.notifier).search(value);
               },
             ),
           ),
 
+          // Recipe List
           Expanded(
-            child: ListView.builder(
+            child: recipes.isEmpty && isLoading
+            // ─────────────────────────────────────────
+            // Initial load: list is empty AND loading
+            // Show a full-screen spinner (first page load)
+            // ─────────────────────────────────────────
+                ? const Center(child: CircularProgressIndicator())
+
+                : ListView.builder(
               controller: _scrollController,
-              itemCount: recipes.length,
+
+              // ─────────────────────────────────────
+              // FIX 3: itemCount = recipes + 1 extra slot
+              // The extra slot at the end is used to show
+              // the loading spinner while more recipes load.
+              //
+              // WHY +1: ListView.builder needs to know how
+              // many items to render. We add one extra item
+              // at the bottom that renders the spinner
+              // conditionally. When not loading, it renders
+              // nothing (SizedBox.shrink).
+              // ─────────────────────────────────────
+              itemCount: recipes.length + (isLoading ? 1 : 0),
+
               itemBuilder: (context, index) {
 
+                // Last item = loading spinner
+                if (index == recipes.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                // Normal recipe tile
                 final Recipe recipe = recipes[index];
-                final isFav =
-                favorites.contains(recipe.id);
-                bool isLiked = likedIds.contains(recipe.id);
+                final isFav = favorites.contains(recipe.id);
+                final isLiked = likedIds.contains(recipe.id);
 
                 return ListTile(
                   leading: Image.network(
@@ -128,12 +172,10 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
 
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children:[
+                    children: [
                       IconButton(
                         icon: Icon(
-                          isFav
-                              ? Icons.bookmark
-                              : Icons.bookmark_border,
+                          isFav ? Icons.bookmark : Icons.bookmark_border,
                           color: Colors.blue,
                         ),
                         onPressed: () {
@@ -158,8 +200,7 @@ class _RecipesScreenState extends ConsumerState<RecipesScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            RecipeDetailScreen(recipe: recipe),
+                        builder: (_) => RecipeDetailScreen(recipe: recipe),
                       ),
                     );
                   },

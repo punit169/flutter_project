@@ -9,102 +9,108 @@ class RecipeApiService {
   String get apiKey => dotenv.env['API_KEY_TWO'] ?? '';
   String get baseUrl => dotenv.env['BASE_URL'] ?? '';
 
-  Future<Recipe> getRecipeDetail(int id) async {
-    if (apiKey.isEmpty) {
-      throw Exception("API Key missing in .env");
+  // Helper — throws a clean exception for any non-200 response
+  // including 402 (quota exceeded) so the error message is clear
+  void _checkStatus(http.Response response, String context) {
+    if (response.statusCode == 402) {
+      throw Exception('API quota exceeded. Try again tomorrow or switch API key.');
     }
+    if (response.statusCode != 200) {
+      throw Exception('$context failed: ${response.statusCode}');
+    }
+  }
+
+  Future<Recipe> getRecipeDetail(int id) async {
+    if (apiKey.isEmpty) throw Exception('API Key missing in .env');
+
+    final url = Uri.parse('$baseUrl/recipes/$id/information?apiKey=$apiKey');
+    final response = await http.get(url);
+    _checkStatus(response, 'Recipe detail');
+
+    return Recipe.fromJson(jsonDecode(response.body));
+  }
+
+  Future<List<Recipe>> getRecipesByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    if (apiKey.isEmpty) throw Exception('API Key missing in .env');
+
+    final joinedIds = ids.join(',');
     final url = Uri.parse(
-      "$baseUrl/recipes/$id/information?apiKey=$apiKey",
+      '$baseUrl/recipes/informationBulk?ids=$joinedIds&apiKey=$apiKey',
     );
 
     final response = await http.get(url);
-    if (response.statusCode != 200) {
-      throw Exception("API failed: ${response.statusCode}");
-    }
-    final data = jsonDecode(response.body);
+    _checkStatus(response, 'Bulk fetch');
 
-    return Recipe.fromJson(data);
+    final List data = jsonDecode(response.body);
+    return data.map((json) => Recipe.fromJson(json)).toList();
   }
 
   Future<List<int>> getTrendingRecipeIds() async {
     final snapshot = await FirebaseFirestore.instance
-        .collection("likes")
-        .orderBy("count", descending: true)
+        .collection('likes')
+        .orderBy('count', descending: true)
         .limit(10)
         .get();
 
-    return snapshot.docs
-        .map((doc) => int.parse(doc.id))
-        .toList();
+    return snapshot.docs.map((doc) => int.parse(doc.id)).toList();
   }
 
   Future<List<Recipe>> getHealthyRecipes() async {
-    if (apiKey.isEmpty) {
-      throw Exception("API Key missing in .env");
-    }
+    if (apiKey.isEmpty) throw Exception('API Key missing in .env');
+
     final url = Uri.parse(
-      "$baseUrl/recipes/complexSearch?diet=vegetarian&number=10&apiKey=$apiKey",
+      '$baseUrl/recipes/complexSearch?diet=vegetarian&number=10&apiKey=$apiKey',
     );
 
     final response = await http.get(url);
-    final data = jsonDecode(response.body);
+    _checkStatus(response, 'Healthy recipes');
 
-    return (data["results"] as List)
-        .map((e) => Recipe.fromJson(e))
-        .toList();
+    final data = jsonDecode(response.body);
+    // FIX: was `data["results"] as List` — crashes when quota hit returns no "results" key
+    final List results = data['results'] ?? [];
+    return results.map((e) => Recipe.fromJson(e)).toList();
   }
 
   Future<List<Recipe>> getQuickRecipes() async {
+    if (apiKey.isEmpty) throw Exception('API Key missing in .env');
+
     final url = Uri.parse(
-      "$baseUrl/recipes/complexSearch?maxReadyTime=20&number=10&apiKey=$apiKey",
+      '$baseUrl/recipes/complexSearch?maxReadyTime=20&number=10&apiKey=$apiKey',
     );
 
     final response = await http.get(url);
+    _checkStatus(response, 'Quick recipes');
+
     final data = jsonDecode(response.body);
-
-    return (data["results"] as List)
-        .map((e) => Recipe.fromJson(e))
-        .toList();
+    // FIX: same null cast issue as getHealthyRecipes
+    final List results = data['results'] ?? [];
+    return results.map((e) => Recipe.fromJson(e)).toList();
   }
 
-  Future<List<Recipe>> getRecipesByIds(List<String> ids) async {
-    List<Recipe> recipes = [];
-
-    for (var id in ids) {
-      final recipe = await getRecipeDetail(int.parse(id));
-      recipes.add(recipe);
-    }
-
-    return recipes;
-  }
   Future<List<Recipe>> searchRecipes(String query) async {
     final url = Uri.parse(
-      "$baseUrl/recipes/complexSearch?query=${Uri.encodeComponent(query)}&number=10&apiKey=$apiKey",
+      '$baseUrl/recipes/complexSearch?query=${Uri.encodeComponent(query)}&number=10&apiKey=$apiKey',
     );
 
     final response = await http.get(url);
+    _checkStatus(response, 'Search');
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      final List results = data["results"]?? [];
-
-      return results.map((e) => Recipe.fromJson(e)).toList();
-    } else {
-      throw Exception("Failed to search recipes");
-    }
-
+    final data = jsonDecode(response.body);
+    final List results = data['results'] ?? [];
+    return results.map((e) => Recipe.fromJson(e)).toList();
   }
+
   Future<List<Recipe>> getRecommendedRecipes(String query) async {
     final url = Uri.parse(
-      "$baseUrl/recipes/complexSearch?query=${Uri.encodeComponent(query)}&number=10&apiKey=$apiKey",
+      '$baseUrl/recipes/complexSearch?query=${Uri.encodeComponent(query)}&number=10&apiKey=$apiKey',
     );
 
     final res = await http.get(url);
-    final data = jsonDecode(res.body);
+    _checkStatus(res, 'Recommended recipes');
 
-    return (data["results"] as List)
-        .map((e) => Recipe.fromJson(e))
-        .toList();
+    final data = jsonDecode(res.body);
+    final List results = data['results'] ?? [];
+    return results.map((e) => Recipe.fromJson(e)).toList();
   }
 }
